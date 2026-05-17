@@ -1,8 +1,10 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../models/contact_model.php';
-require_once __DIR__ . '/../controllers/AuthController.php'; 
+require_once __DIR__ . '/../controllers/AuthController.php';
+require_once __DIR__ . '/../models/LogModel.php';
 
+// Fonction utilitaire pour les messages flash (inchangée)
 function setFlashMessage($type, $message) {
     $_SESSION['flash'] = ['type' => $type, 'message' => $message];
 }
@@ -28,9 +30,38 @@ function validateContact($nom, $prenom, $telephone, $email, $adresse) {
     return $errors;
 }
 
+function uploadPhoto($file) {
+    if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+        return null;
+    }
+    
+    $allowed = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!in_array($file['type'], $allowed)) {
+        return false;
+    }
+    
+    $maxSize = 2 * 1024 * 1024; // 2MB
+    if ($file['size'] > $maxSize) {
+        return false;
+    }
+    
+    $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $filename = uniqid() . '.' . $ext;
+    $uploadDir = __DIR__ . '/../public/uploads/';
+    
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
+    }
+    
+    if (move_uploaded_file($file['tmp_name'], $uploadDir . $filename)) {
+        return 'uploads/' . $filename;
+    }
+    
+    return false;
+}
+
 function listContacts() {
     global $pdo;
-    require_once __DIR__ . '/../controllers/AuthController.php';
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $perPage = 5;
@@ -40,6 +71,7 @@ function listContacts() {
     $totalPages = ceil($totalContacts / $perPage);
     $contacts = getAllContacts($pdo, $search, $perPage, $offset);
     $isAdmin = isAdmin();
+    
     include __DIR__ . '/../views/contact/index.php';
 }
 
@@ -57,8 +89,17 @@ function storeContact() {
         $adresse = trim($_POST['adresse']);
         
         $errors = validateContact($nom, $prenom, $telephone, $email, $adresse);
+        
+        $photoPath = uploadPhoto($_FILES['photo']);
+        if ($photoPath === false) {
+            $errors[] = "Photo invalide (JPEG/PNG/GIF, max 2MB).";
+        }
+        
         if (empty($errors)) {
-            if (insertContact($pdo, $nom, $prenom, $telephone, $email, $adresse)) {
+            $stmt = $pdo->prepare("INSERT INTO CARNET (nom, prenom, telephone, email, adresse, photo) VALUES (?, ?, ?, ?, ?, ?)");
+            if ($stmt->execute([$nom, $prenom, $telephone, $email, $adresse, $photoPath])) {
+                // Log l'action
+                addLog($pdo, $_SESSION['user_id'], $_SESSION['user_nom'], 'CREATE', "Ajout contact: $nom $prenom");
                 setFlashMessage('success', 'Contact ajouté avec succès.');
                 header('Location: index.php?action=list');
                 exit();
@@ -96,8 +137,27 @@ function updateContactAction() {
         $adresse = trim($_POST['adresse']);
         
         $errors = validateContact($nom, $prenom, $telephone, $email, $adresse);
+        
+        $oldContact = getContactById($pdo, $id);
+        $photoPath = $oldContact['photo'];
+        
+        if ($_FILES['photo']['error'] !== UPLOAD_ERR_NO_FILE) {
+            $newPhoto = uploadPhoto($_FILES['photo']);
+            if ($newPhoto === false) {
+                $errors[] = "Photo invalide (JPEG/PNG/GIF, max 2MB).";
+            } else {
+                // Supprimer l'ancienne photo
+                if ($photoPath && file_exists(__DIR__ . '/../public/' . $photoPath)) {
+                    unlink(__DIR__ . '/../public/' . $photoPath);
+                }
+                $photoPath = $newPhoto;
+            }
+        }
+        
         if (empty($errors)) {
-            if (updateContact($pdo, $id, $nom, $prenom, $telephone, $email, $adresse)) {
+            $stmt = $pdo->prepare("UPDATE CARNET SET nom = ?, prenom = ?, telephone = ?, email = ?, adresse = ?, photo = ? WHERE id = ?");
+            if ($stmt->execute([$nom, $prenom, $telephone, $email, $adresse, $photoPath, $id])) {
+                addLog($pdo, $_SESSION['user_id'], $_SESSION['user_nom'], 'UPDATE', "Modifié contact: $nom $prenom (ID: $id)");
                 setFlashMessage('success', 'Contact modifié avec succès.');
                 header('Location: index.php?action=list');
                 exit();
@@ -117,7 +177,12 @@ function deleteContactAction() {
     global $pdo;
     $id = $_GET['id'] ?? null;
     if ($id) {
+        $contact = getContactById($pdo, $id);
+        if ($contact && $contact['photo'] && file_exists(__DIR__ . '/../public/' . $contact['photo'])) {
+            unlink(__DIR__ . '/../public/' . $contact['photo']);
+        }
         deleteContact($pdo, $id);
+        addLog($pdo, $_SESSION['user_id'], $_SESSION['user_nom'], 'DELETE', "Supprimé contact: {$contact['nom']} {$contact['prenom']} (ID: $id)");
         setFlashMessage('success', 'Contact supprimé.');
     }
     header('Location: index.php?action=list');

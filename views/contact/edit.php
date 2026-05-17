@@ -24,7 +24,7 @@ unset($_SESSION['errors'], $_SESSION['old']);
         </div>
     <?php endif; ?>
     
-    <form action="index.php?action=update" method="POST">
+    <form action="index.php?action=update" method="POST" enctype="multipart/form-data">
         <input type="hidden" name="id" value="<?= htmlspecialchars($contact['id']) ?>">
         <div class="mb-3">
             <label for="nom" class="form-label">Nom :</label>
@@ -45,6 +45,22 @@ unset($_SESSION['errors'], $_SESSION['old']);
         <div class="mb-3">
             <label for="adresse" class="form-label">Adresse :</label>
             <textarea id="adresse" name="adresse" rows="3" class="form-control" required><?= htmlspecialchars($old['adresse'] ?? $contact['adresse']) ?></textarea>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Photo actuelle :</label>
+            <?php if ($contact['photo']): ?>
+                <div>
+                    <img src="<?= htmlspecialchars($contact['photo']) ?>" alt="Photo" style="max-width: 100px; max-height: 100px;" class="img-thumbnail">
+                    <small class="d-block">Fichier : <?= basename($contact['photo']) ?></small>
+                </div>
+            <?php else: ?>
+                <p class="text-muted">Aucune photo</p>
+            <?php endif; ?>
+        </div>
+        <div class="mb-3">
+            <label for="photo" class="form-label">Nouvelle photo (laisser vide pour garder l'actuelle) :</label>
+            <input type="file" id="photo" name="photo" class="form-control" accept="image/jpeg,image/png,image/gif">
+            <small class="text-muted">Formats acceptés : JPG, PNG, GIF (max 2 Mo)</small>
         </div>
         <button type="submit" class="btn btn-primary">Mettre à jour</button>
         <a href="index.php?action=list" class="btn btn-secondary">Retour</a>

@@ -52,18 +52,29 @@ function getContactById($pdo, $id) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function insertContact($pdo, $nom, $prenom, $telephone, $email, $adresse) {
-    $stmt = $pdo->prepare("INSERT INTO CARNET (nom, prenom, telephone, email, adresse) VALUES (?, ?, ?, ?, ?)");
-    return $stmt->execute([$nom, $prenom, $telephone, $email, $adresse]);
+function insertContact($pdo, $nom, $prenom, $telephone, $email, $adresse, $photo = null) {
+    if ($photo) {
+        $stmt = $pdo->prepare("INSERT INTO CARNET (nom, prenom, telephone, email, adresse, photo) VALUES (?, ?, ?, ?, ?, ?)");
+        return $stmt->execute([$nom, $prenom, $telephone, $email, $adresse, $photo]);
+    } else {
+        $stmt = $pdo->prepare("INSERT INTO CARNET (nom, prenom, telephone, email, adresse) VALUES (?, ?, ?, ?, ?)");
+        return $stmt->execute([$nom, $prenom, $telephone, $email, $adresse]);
+    }
 }
 
-function updateContact($pdo, $id, $nom, $prenom, $telephone, $email, $adresse) {
-    $stmt = $pdo->prepare("UPDATE CARNET SET nom = ?, prenom = ?, telephone = ?, email = ?, adresse = ? WHERE id = ?");
-    return $stmt->execute([$nom, $prenom, $telephone, $email, $adresse, $id]);
+function updateContact($pdo, $id, $nom, $prenom, $telephone, $email, $adresse, $photo = null) {
+    if ($photo) {
+        $stmt = $pdo->prepare("UPDATE CARNET SET nom=?, prenom=?, telephone=?, email=?, adresse=?, photo=? WHERE id=?");
+        return $stmt->execute([$nom, $prenom, $telephone, $email, $adresse, $photo, $id]);
+    } else {
+        $stmt = $pdo->prepare("UPDATE CARNET SET nom=?, prenom=?, telephone=?, email=?, adresse=? WHERE id=?");
+        return $stmt->execute([$nom, $prenom, $telephone, $email, $adresse, $id]);
+    }
 }
 
-function deleteContact($pdo, $id) {
-    $stmt = $pdo->prepare("DELETE FROM CARNET WHERE id = ?");
-    return $stmt->execute([$id]);
+function deletePhotoFile($photoPath) {
+    if ($photoPath && file_exists($photoPath)) {
+        unlink($photoPath);
+    }
 }
 ?>

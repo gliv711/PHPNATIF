@@ -24,7 +24,7 @@ unset($_SESSION['errors'], $_SESSION['old']);
         </div>
     <?php endif; ?>
     
-    <form action="index.php?action=store" method="POST">
+    <form action="index.php?action=store" method="POST" enctype="multipart/form-data">
         <div class="mb-3">
             <label for="nom" class="form-label">Nom :</label>
             <input type="text" id="nom" name="nom" class="form-control" value="<?= htmlspecialchars($old['nom'] ?? '') ?>" required>
@@ -44,6 +44,11 @@ unset($_SESSION['errors'], $_SESSION['old']);
         <div class="mb-3">
             <label for="adresse" class="form-label">Adresse :</label>
             <textarea id="adresse" name="adresse" rows="3" class="form-control" required><?= htmlspecialchars($old['adresse'] ?? '') ?></textarea>
+        </div>
+        <div class="mb-3">
+            <label for="photo" class="form-label">Photo :</label>
+            <input type="file" id="photo" name="photo" class="form-control" accept="image/jpeg,image/png,image/gif">
+            <small class="text-muted">Formats acceptés : JPG, PNG, GIF (max 2 Mo)</small>
         </div>
         <button type="submit" class="btn btn-success">Enregistrer</button>
         <a href="index.php?action=list" class="btn btn-secondary">Annuler</a>
