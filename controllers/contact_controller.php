@@ -30,6 +30,7 @@ function validateContact($nom, $prenom, $telephone, $email, $adresse) {
 
 function listContacts() {
     global $pdo;
+    require_once __DIR__ . '/../controllers/AuthController.php';
     $search = isset($_GET['search']) ? trim($_GET['search']) : '';
     $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
     $perPage = 5;
@@ -38,8 +39,7 @@ function listContacts() {
     $totalContacts = countContacts($pdo, $search);
     $totalPages = ceil($totalContacts / $perPage);
     $contacts = getAllContacts($pdo, $search, $perPage, $offset);
-    $isAdmin = isAdmin(); 
-    
+    $isAdmin = isAdmin();
     include __DIR__ . '/../views/contact/index.php';
 }
 

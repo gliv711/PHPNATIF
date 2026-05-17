@@ -1,13 +1,17 @@
 <?php
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/contact_controller.php';
 
 $action = $_GET['action'] ?? 'list';
 
-$publicActions = ['login', 'doLogin', 'logout'];
+// Actions publiques (sans auth)
+$publicActions = ['login', 'doLogin', 'logout', 'register', 'doRegister'];
 
 if (!in_array($action, $publicActions)) {
-    requireAuth(); 
+    requireAuth();
 }
 
 switch ($action) {
@@ -21,7 +25,22 @@ switch ($action) {
     case 'logout':
         logout();
         break;
+    case 'register':
+        showRegisterForm();
+        break;
+    case 'doRegister':
+        register();
+        break;
     
+    // Profil utilisateur
+    case 'profile':
+        showProfileForm();
+        break;
+    case 'updateProfile':
+        updateProfile();
+        break;
+    
+    // CRUD contacts
     case 'list':
         listContacts();
         break;
@@ -38,7 +57,7 @@ switch ($action) {
         updateContactAction();
         break;
     case 'delete':
-        requireAdmin(); 
+        requireAdmin();
         deleteContactAction();
         break;
     default:
